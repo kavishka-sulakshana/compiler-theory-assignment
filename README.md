@@ -2,7 +2,7 @@
 
 > Compile your code
 
-`flex –l calc.l`
-`bison -dv calc.y`
-`gcc -o calc calc.tab.c lex.yy.c –lfl`
+`flex –l calc.l` <br>
+`bison -dv calc.y` <br>
+`gcc -o calc calc.tab.c lex.yy.c –lfl` <br>
 `./calc`
