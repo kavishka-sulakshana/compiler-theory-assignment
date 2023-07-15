@@ -12,8 +12,6 @@ struct variable{
 
 struct tree_node{
     int type;
-    struct tree_node *left;
-    struct tree_node *right;
     int int_value;
     float float_value;
 };
@@ -23,7 +21,8 @@ int var_count = 0;
 
 struct variable *find_var(char *id);
 struct variable *createVar(char *id, int type);
-struct tree_node *createTreeNode(int type,  struct tree_node *leftNode, struct tree_node *rightNode);
+struct tree_node *createTreeNode(int type);
+void errorMessage(int position);
 
 %}
 %token TOK_SEMICOLON TOK_ADD TOK_MUL TOK_DOT TOK_INT TOK_FLOAT TOK_MAIN TOK_NUM TOK_PRINTVAR TOK_ID TOK_LCURL TOK_RCURL TOK_EQ
@@ -45,7 +44,7 @@ struct tree_node *createTreeNode(int type,  struct tree_node *leftNode, struct t
 %%
 prog : TOK_MAIN TOK_LCURL stmts TOK_RCURL
 stmts : | stmt TOK_SEMICOLON stmts
-stmt : TOK_INT TOK_ID { //corr
+stmt : TOK_INT TOK_ID { 
     char *id = malloc(sizeof(char) * 20);
     // printf("id %s \n", $2);
     strcpy(id, $2);
@@ -53,28 +52,31 @@ stmt : TOK_INT TOK_ID { //corr
     vars[var_count] = *var;
     var_count++;
 }
- | TOK_FLOAT TOK_ID { //corr
+ | TOK_FLOAT TOK_ID { 
     char *id = malloc(sizeof(char) * 20);
     strcpy(id, $2);
     struct variable *var = createVar(id, 1);
     vars[var_count] = *var;
     var_count++;
  }
- | TOK_ID TOK_EQ E { // problem here
+ | TOK_ID TOK_EQ E { 
     struct variable *var1 = find_var($1);
     // printf("variable %s \n", $1);
     if(var1 == NULL)
     {
-        fprintf(stderr, "variable %s is not declared", $1);
+        fprintf(stderr, "%s is used but not declared \n", $1);
         exit(1);
     }
     if(var1->type == 0 && $3->type == 0)
         var1->int_value = $3->int_value;
-    else if(var1->type == 0 && $3->type == 1)
-        var1->int_value = $3->float_value;
+    else if(var1->type == 0 && $3->type == 1){
+        fprintf(stderr, "Declared type int but given float\n");
+        exit(1);
+        // var1->int_value = $3->float_value;
+    }
     else if(var1->type == 1 && $3->type == 0)
         var1->float_value = $3->int_value;
-    else
+    else if(var1->type == 1 && $3->type == 1)
         var1->float_value = $3->float_value;
  }
  | TOK_PRINTVAR TOK_ID { //corr
@@ -82,7 +84,7 @@ stmt : TOK_INT TOK_ID { //corr
     // fprintf(stderr, "variable %s ", $2);
     if(var1 == NULL)
     {
-        fprintf(stderr, "variable %s is not declared", $2);
+        fprintf(stderr, "%s used but not declared \n", $2);
         exit(1);
     }
     if(var1->type == 0)
@@ -91,14 +93,14 @@ stmt : TOK_INT TOK_ID { //corr
         printf("%f", var1->float_value);
  }
 E : TOK_NUM { 
-    struct tree_node *e = createTreeNode(0, NULL, NULL);
+    struct tree_node *e = createTreeNode(0);
     e->int_value = $1;
     $$ = e;
 }
  | TOK_NUM TOK_DOT TOK_NUM {
     char str[20];
     sprintf(str, "%d.%d", $1, $3);
-    struct tree_node *e = createTreeNode(1, NULL, NULL);
+    struct tree_node *e = createTreeNode(1);
     e->float_value = atof(str);
     $$ = e;
  } 
@@ -106,18 +108,18 @@ E : TOK_NUM {
     struct variable *var = find_var($1);
     if(var == NULL)
     {
-        fprintf(stderr, "variable %s not declared", $1);
+        fprintf(stderr, "%s is used but not declared \n", $1);
         exit(1);
     }
     else if(var->type == 0)
     {
-        struct tree_node *e = createTreeNode(0, NULL, NULL);
+        struct tree_node *e = createTreeNode(0);
         e->int_value = var->int_value;
         $$ = e;
     }
     else
     {
-        struct tree_node *e = createTreeNode(0, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = var->float_value;
         $$ = e;
     }
@@ -125,26 +127,25 @@ E : TOK_NUM {
  | E TOK_ADD E {
     if($1->type == 0 && $3->type == 0)
     {
-        struct tree_node *e = createTreeNode(0, NULL, NULL);
+        struct tree_node *e = createTreeNode(0);
         e->int_value = $1->int_value + $3->int_value;
-        // fprintf(stderr,"\nTot %d", e->int_value);
         $$ = e;
     }
     else if($1->type == 0 && $3->type == 1)
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = $1->int_value + $3->float_value;
         $$ = e;
     }
     else if($1->type == 1 && $3->type == 0)
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = $1->float_value + $3->int_value;
         $$ = e;
     }
     else
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = $1->float_value + $3->float_value;
         $$ = e;
     }    
@@ -152,25 +153,25 @@ E : TOK_NUM {
  | E TOK_MUL E {
     if($1->type == 0 && $3->type == 0)
     {
-        struct tree_node *e = createTreeNode(0, NULL, NULL);
+        struct tree_node *e = createTreeNode(0);
         e->int_value = $1->int_value * $3->int_value;
         $$ = e;
     }
     else if($1->type == 0 && $3->type == 1)
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = $1->int_value * $3->float_value;
         $$ = e;
     }
     else if($1->type == 1 && $3->type == 0)
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = $1->float_value * $3->int_value;
         $$ = e;
     }
     else
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = $1->float_value * $3->float_value;
         $$ = e;
     }
@@ -179,6 +180,7 @@ E : TOK_NUM {
 int yyerror(char *s)
 {
     fprintf(stderr, "syntax error");
+    // errorMessage(line_no);
     return 0; 
 }
 
@@ -199,12 +201,10 @@ struct variable *find_var(char *id)
     return NULL;
 }
 
-struct tree_node *createTreeNode(int type,  struct tree_node *leftNode, struct tree_node *rightNode)
+struct tree_node *createTreeNode(int type)
 {
     struct tree_node *node = malloc(sizeof(struct tree_node));
     node->type = type;
-    node->left = NULL;
-    node->right = NULL;
     return node;
 }
 
@@ -218,4 +218,8 @@ struct variable *createVar(char *id, int type)
     else
         var->float_value = 0;
     return var;
+}
+
+void errorMessage(int position){
+    printf("Syntax Error in line %d\n", position);
 }
