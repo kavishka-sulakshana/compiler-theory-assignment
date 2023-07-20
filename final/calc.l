@@ -2,7 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "calc.tab.h"
-int line_no = 1;
+
+int line_no = 0;
 void errorMessage(char,int);
 %}
 digit [0-9]
@@ -24,11 +25,9 @@ skip [ \t]
 {digit}+ { yylval.int_val = atoi(yytext);return (TOK_NUM); }
 {id} { strcpy(yylval.str,yytext);return (TOK_ID); }
 \n {line_no++;}
-. {errorMessage(yytext[0], 0);}
+. {printf("Invalid Character");}
 %%
-void errorMessage(char character, int position){
-    printf("Invalid Character '%c' in line %d\n", character, position);
-}
+
 int yywrap(){
     return 1;
 }

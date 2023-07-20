@@ -73,6 +73,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+extern int line_no; 
+
 struct variable{ 
     char id[20];
     int type;
@@ -82,8 +84,6 @@ struct variable{
 
 struct tree_node{
     int type;
-    struct tree_node *left;
-    struct tree_node *right;
     int int_value;
     float float_value;
 };
@@ -93,10 +93,11 @@ int var_count = 0;
 
 struct variable *find_var(char *id);
 struct variable *createVar(char *id, int type);
-struct tree_node *createTreeNode(int type,  struct tree_node *leftNode, struct tree_node *rightNode);
+struct tree_node *createTreeNode(int type);
+void errorMessage(int position);
 
 
-#line 100 "calc.tab.c"
+#line 101 "calc.tab.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -532,8 +533,8 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_uint8 yyrline[] =
 {
-       0,    46,    46,    47,    47,    48,    56,    63,    80,    93,
-      98,   105,   125,   152
+       0,    47,    47,    48,    48,    49,    57,    64,    84,    97,
+     102,   109,   129,   155
 };
 #endif
 
@@ -1104,8 +1105,8 @@ yyreduce:
   switch (yyn)
     {
   case 5: /* stmt: TOK_INT TOK_ID  */
-#line 48 "calc.y"
-                      { //corr
+#line 49 "calc.y"
+                      { 
     char *id = malloc(sizeof(char) * 20);
     // printf("id %s \n", $2);
     strcpy(id, (yyvsp[0].str));
@@ -1113,51 +1114,54 @@ yyreduce:
     vars[var_count] = *var;
     var_count++;
 }
-#line 1117 "calc.tab.c"
+#line 1118 "calc.tab.c"
     break;
 
   case 6: /* stmt: TOK_FLOAT TOK_ID  */
-#line 56 "calc.y"
-                    { //corr
+#line 57 "calc.y"
+                    { 
     char *id = malloc(sizeof(char) * 20);
     strcpy(id, (yyvsp[0].str));
     struct variable *var = createVar(id, 1);
     vars[var_count] = *var;
     var_count++;
  }
-#line 1129 "calc.tab.c"
+#line 1130 "calc.tab.c"
     break;
 
   case 7: /* stmt: TOK_ID TOK_EQ E  */
-#line 63 "calc.y"
-                   { // problem here
+#line 64 "calc.y"
+                   { 
     struct variable *var1 = find_var((yyvsp[-2].str));
     // printf("variable %s \n", $1);
     if(var1 == NULL)
     {
-        fprintf(stderr, "variable %s is not declared", (yyvsp[-2].str));
+        fprintf(stderr, "%s is used but not declared \n", (yyvsp[-2].str));
         exit(1);
     }
     if(var1->type == 0 && (yyvsp[0].e)->type == 0)
         var1->int_value = (yyvsp[0].e)->int_value;
-    else if(var1->type == 0 && (yyvsp[0].e)->type == 1)
-        var1->int_value = (yyvsp[0].e)->float_value;
+    else if(var1->type == 0 && (yyvsp[0].e)->type == 1){
+        fprintf(stderr, "Declared type int but given float\n");
+        exit(1);
+        // var1->int_value = $3->float_value;
+    }
     else if(var1->type == 1 && (yyvsp[0].e)->type == 0)
         var1->float_value = (yyvsp[0].e)->int_value;
-    else
+    else if(var1->type == 1 && (yyvsp[0].e)->type == 1)
         var1->float_value = (yyvsp[0].e)->float_value;
  }
-#line 1151 "calc.tab.c"
+#line 1155 "calc.tab.c"
     break;
 
   case 8: /* stmt: TOK_PRINTVAR TOK_ID  */
-#line 80 "calc.y"
+#line 84 "calc.y"
                        { //corr
     struct variable *var1 = find_var((yyvsp[0].str));
     // fprintf(stderr, "variable %s ", $2);
     if(var1 == NULL)
     {
-        fprintf(stderr, "variable %s is not declared", (yyvsp[0].str));
+        fprintf(stderr, "%s used but not declared \n", (yyvsp[0].str));
         exit(1);
     }
     if(var1->type == 0)
@@ -1165,121 +1169,120 @@ yyreduce:
     else
         printf("%f", var1->float_value);
  }
-#line 1169 "calc.tab.c"
+#line 1173 "calc.tab.c"
     break;
 
   case 9: /* E: TOK_NUM  */
-#line 93 "calc.y"
+#line 97 "calc.y"
             { 
-    struct tree_node *e = createTreeNode(0, NULL, NULL);
+    struct tree_node *e = createTreeNode(0);
     e->int_value = (yyvsp[0].int_val);
     (yyval.e) = e;
 }
-#line 1179 "calc.tab.c"
+#line 1183 "calc.tab.c"
     break;
 
   case 10: /* E: TOK_NUM TOK_DOT TOK_NUM  */
-#line 98 "calc.y"
+#line 102 "calc.y"
                            {
     char str[20];
     sprintf(str, "%d.%d", (yyvsp[-2].int_val), (yyvsp[0].int_val));
-    struct tree_node *e = createTreeNode(1, NULL, NULL);
+    struct tree_node *e = createTreeNode(1);
     e->float_value = atof(str);
     (yyval.e) = e;
  }
-#line 1191 "calc.tab.c"
+#line 1195 "calc.tab.c"
     break;
 
   case 11: /* E: TOK_ID  */
-#line 105 "calc.y"
+#line 109 "calc.y"
           {
     struct variable *var = find_var((yyvsp[0].str));
     if(var == NULL)
     {
-        fprintf(stderr, "variable %s not declared", (yyvsp[0].str));
+        fprintf(stderr, "%s is used but not declared \n", (yyvsp[0].str));
         exit(1);
     }
     else if(var->type == 0)
     {
-        struct tree_node *e = createTreeNode(0, NULL, NULL);
+        struct tree_node *e = createTreeNode(0);
         e->int_value = var->int_value;
         (yyval.e) = e;
     }
     else
     {
-        struct tree_node *e = createTreeNode(0, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = var->float_value;
         (yyval.e) = e;
     }
  }
-#line 1216 "calc.tab.c"
+#line 1220 "calc.tab.c"
     break;
 
   case 12: /* E: E TOK_ADD E  */
-#line 125 "calc.y"
+#line 129 "calc.y"
                {
     if((yyvsp[-2].e)->type == 0 && (yyvsp[0].e)->type == 0)
     {
-        struct tree_node *e = createTreeNode(0, NULL, NULL);
+        struct tree_node *e = createTreeNode(0);
         e->int_value = (yyvsp[-2].e)->int_value + (yyvsp[0].e)->int_value;
-        // fprintf(stderr,"\nTot %d", e->int_value);
         (yyval.e) = e;
     }
     else if((yyvsp[-2].e)->type == 0 && (yyvsp[0].e)->type == 1)
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = (yyvsp[-2].e)->int_value + (yyvsp[0].e)->float_value;
         (yyval.e) = e;
     }
     else if((yyvsp[-2].e)->type == 1 && (yyvsp[0].e)->type == 0)
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = (yyvsp[-2].e)->float_value + (yyvsp[0].e)->int_value;
         (yyval.e) = e;
     }
     else
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = (yyvsp[-2].e)->float_value + (yyvsp[0].e)->float_value;
         (yyval.e) = e;
     }    
  }
-#line 1248 "calc.tab.c"
+#line 1251 "calc.tab.c"
     break;
 
   case 13: /* E: E TOK_MUL E  */
-#line 152 "calc.y"
+#line 155 "calc.y"
                {
     if((yyvsp[-2].e)->type == 0 && (yyvsp[0].e)->type == 0)
     {
-        struct tree_node *e = createTreeNode(0, NULL, NULL);
+        struct tree_node *e = createTreeNode(0);
         e->int_value = (yyvsp[-2].e)->int_value * (yyvsp[0].e)->int_value;
         (yyval.e) = e;
     }
     else if((yyvsp[-2].e)->type == 0 && (yyvsp[0].e)->type == 1)
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = (yyvsp[-2].e)->int_value * (yyvsp[0].e)->float_value;
         (yyval.e) = e;
     }
     else if((yyvsp[-2].e)->type == 1 && (yyvsp[0].e)->type == 0)
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = (yyvsp[-2].e)->float_value * (yyvsp[0].e)->int_value;
         (yyval.e) = e;
     }
     else
     {
-        struct tree_node *e = createTreeNode(1, NULL, NULL);
+        struct tree_node *e = createTreeNode(1);
         e->float_value = (yyvsp[-2].e)->float_value * (yyvsp[0].e)->float_value;
         (yyval.e) = e;
     }
  }
-#line 1279 "calc.tab.c"
+#line 1282 "calc.tab.c"
     break;
 
 
-#line 1283 "calc.tab.c"
+#line 1286 "calc.tab.c"
 
       default: break;
     }
@@ -1472,11 +1475,12 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 178 "calc.y"
+#line 181 "calc.y"
 
 int yyerror(char *s)
 {
     fprintf(stderr, "syntax error");
+    errorMessage(line_no);
     return 0; 
 }
 
@@ -1497,12 +1501,10 @@ struct variable *find_var(char *id)
     return NULL;
 }
 
-struct tree_node *createTreeNode(int type,  struct tree_node *leftNode, struct tree_node *rightNode)
+struct tree_node *createTreeNode(int type)
 {
     struct tree_node *node = malloc(sizeof(struct tree_node));
     node->type = type;
-    node->left = NULL;
-    node->right = NULL;
     return node;
 }
 
@@ -1516,4 +1518,8 @@ struct variable *createVar(char *id, int type)
     else
         var->float_value = 0;
     return var;
+}
+
+void errorMessage(int position){
+    printf("Syntax Error in line %d\n", position);
 }

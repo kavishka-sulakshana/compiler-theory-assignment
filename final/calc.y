@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+extern int line_no; 
+
 struct variable{ 
     char id[20];
     int type;
@@ -180,7 +182,7 @@ E : TOK_NUM {
 int yyerror(char *s)
 {
     fprintf(stderr, "syntax error");
-    // errorMessage(line_no);
+    errorMessage(line_no);
     return 0; 
 }
 
