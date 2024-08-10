@@ -1,5 +1,9 @@
 ## compiler-theory-assignment
+> Contributers
 
+- Janidu Indusara - [axis0047](https://github.com/axis0047)
+- Kavishka Sulakshana - me
+  
 > Compile your code
 
 `flex –l calc.l` <br>
